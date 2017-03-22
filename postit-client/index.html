@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="listaTelefonica" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title> Postits</title>
+    <!-- Custom styles for this template -->
+    <link href="jumbotron.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="node_modules/angular/angular.js"></script>
+    <script src="node_modules/bootstrap/js/modal.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <script>
+        $('#myModal').on('shown.bs.modal', function () {
+            $('#myInput').focus()
+        })
+    </script>
+    <script>
+        var app = angular.module("listaTelefonica", []);
+
+        app.controller("postitsController", function ($scope, $http) {
+                $scope.app = "Sticky Notes App";
+                $scope.cores = ['rotate-1 lazur-bg', 'rotate-2 red-bg', 'rotate-1 yellow-bg'];
+
+                $scope.postit = {};
+
+
+                function findAll() {
+                    $http.get('http://localhost:8000/api/users/').then(function (response) {
+                        $scope.usuarios = response.data;
+                    });
+                }
+
+                findAll();
+
+                $scope.findById = function (usuario) {
+                    $scope.usuarioId = usuario.id;
+                    $scope.nomeUsuario = usuario.username;
+                    $http.get('http://localhost:8000/api/users/' + $scope.usuarioId).then(function (response) {
+                        $scope.arrayPostits = response.data.postits;
+                    });
+                }
+
+                $scope.novoUsuario = function (usuario) {
+                    var dataObj = {
+                        username: usuario.username
+                    };
+
+                    $http.post('http://localhost:8000/api/users/', JSON.stringify(dataObj))
+                        .then(function (data, status, headers, config) {
+                            $scope.message = data;
+                            $scope.usuarios.push({username: usuario.username})
+                        });
+                    findAll();
+                }
+
+                $scope.apagaUsuario = function (usuarioId) {
+                    console.log(usuarioId);
+
+                    $http.delete('http://localhost:8000/api/users/' + usuarioId).then(function (response) {
+                        $scope.ServerResponse = response;
+                    });
+                    findAll();
+
+                    console.log($scope.usuarios);
+
+                    $scope.usuarios.forEach(function (item) {
+                        if (item.id != usuarioId) {
+                            console.log(item.id);
+                        } else {
+                            var index = $scope.usuarios.indexOf(item);
+                        }
+                        $scope.usuarios.splice(index, 1);
+                        console.log($scope.usuarios);
+                    });
+                }
+
+                $scope.novaNota = function (userId, notaId) {
+                    var tit = $scope.postit.titulo;
+                    var men = $scope.postit.mensagem;
+
+                    if (notaId == null) {
+                        var dataObj = {
+                            titulo: tit,
+                            mensagem: men
+                        };
+
+                        $http.post('http://localhost:8000/api/postit/' + userId, JSON.stringify(dataObj))
+                            .then(function (data, status, headers, config) {
+                                $scope.message = data;
+                                $scope.arrayPostits.push({titulo: tit, mensagem: men});
+                                findAll();
+                            });
+                    } else {
+
+                        console.log("chegou aqui");
+                        console.log(userId);
+                        console.log(notaId);
+                        console.log(tit);
+                        console.log(men);
+
+                        var dataObj = {
+                            titulo: tit,
+                            mensagem: men,
+                        };
+                        $http.put('http://localhost:8000/api/postit/' + userId + '/' + notaId, JSON.stringify(dataObj))
+                            .then(function (data, status, headers, config) {
+                                $scope.arrayPostits.forEach(function (item) {
+                                    var index = $scope.arrayPostits.indexOf(item);
+                                    if (item.id == notaId) {
+                                        $scope.arrayPostits.splice(index, 1);
+                                    }
+                                });
+                                $scope.message = data;
+                                $scope.arrayPostits.push({titulo: tit, mensagem: men});
+                                findAll();
+
+                            });
+                    }
+                }
+
+                $scope.deleteEvent = function (id, userId, mensagem, titulo) {
+                    $scope.notaId = id;
+                    $scope.postit.titulo = titulo;
+                    $scope.postit.mensagem = mensagem;
+                    $scope.postit.id = id;
+                    $scope.postit.userId = userId;
+                }
+
+                $scope.destroyById = function (postitId, userId) {
+                    var post = postitId;
+                    var user = userId;
+
+                    $http.delete('http://localhost:8000/api/postit/' + user + '/' + post).then(function (response) {
+                        $scope.ServerResponse = response;
+                        findAll();
+                    });
+                    $scope.arrayPostits.forEach(function (item) {
+                        var index = $scope.arrayPostits.indexOf(item);
+                        if (item.id == post) {
+                            $scope.arrayPostits.splice(index, 1);
+                        }
+                    });
+                }
+
+
+            }
+        );
+
+    </script>
+</head>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Postits App</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+
+            <form class="navbar-form navbar-right">
+                <div class="form-group">
+                    <input type="text" placeholder="Email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <input type="password" placeholder="Password" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-success">Sign in</button>
+            </form>
+        </div><!--/.navbar-collapse -->
+    </div>
+</nav>
+
+<body>
+<div class="jumbotron" ng-controller="postitsController">
+    <div class="container" id="botao">
+        <button type="button" class="btn btn-primary btn-lg btn-block botao" data-toggle="modal"
+                data-target=".bs-example-modal-sm">Novo Postit
+        </button>
+    </div>
+    <div class="container">
+        <div class="row ">
+            <div class="col-md-3">
+                <div class="list-group" id="listaUsuarios">
+                    <a href="#" class="list-group-item active">
+                        Meus Cadernos
+                    </a>
+                    <a ng-repeat="usuario in usuarios" id="{{usuario.id}}" href="#" class="list-group-item"
+                       ng-click="findById(usuario)">
+                        {{usuario.username}}
+                        <span ng-if="usuario.postits.length < 1" class="badge">0</span>
+                        <span ng-if="usuario.postits.length > 0" class="badge">{{usuario.postits.length}}</span>
+                    </a>
+                    <input type="text" class="form-control" id="nomeUsuario" placeholder="Novo..."
+                           ng-model="usuario.username">
+                    <button type="submit" class="btn btn-success btn-block" ng-click="novoUsuario(usuario)"
+                            ng-disabled="!usuario.username">Criar Caderno
+                    </button>
+                    <button type="submit" class="btn btn-danger btn-block" ng-click="apagaUsuario(usuarioId)">Apagar Caderno
+                    </button>
+
+                    <hr>
+
+
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="container bootstrap snippet">
+                    <div class="row">
+                        <ul class="notes">
+                            <li ng-repeat="item in arrayPostits" ng-if="arrayPostits.length > 0">
+                                <div class="{{cores[2]}}" ng-click="doStuff($element.target)">
+                                    <small> Atualizada em: {{item.updatedAt}}</small>
+                                    <h4 idUsuario="{{item.userId}}" idPostit="{{item.id}}"
+                                        data-ng-click="ShowId($event)"> {{item.titulo}} </h4>
+                                    <hr>
+                                    <p>{{item.mensagem}}</p>
+                                    <a href="#" class="text-danger pull-right icones"
+                                       ng-click="destroyById(item.id, item.userId)"><i
+                                            class="glyphicon glyphicon-trash"> Apagar</i></a>
+                                    <a data-toggle="modal" data-target=".bs-example-modal-sm" href="#"
+                                       class="text-danger pull-left icones" ng-click="deleteEvent(item.id, item.userId, item.mensagem, item.titulo)">
+                                        <i class="glyphicon glyphicon-pencil"></i>
+                                        Editar</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Small modal -->
+            <div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+                <div class="modal-dialog modal-sm" role="document">
+                    <div class="modal-content">
+                        <a href="#" class="list-group-item active">
+                            Novo postit <span ng-if="nomeUsuario.$isEmpty()"></span>
+                            <span ng-if="nomeUsuario.length > 1"> de {{nomeUsuario}}</span>
+                        </a>
+                        <form class="list-group-item">
+                            <div class="form-group ">
+                                <label for="titulo">Título</label>
+                                <input type="text" class="form-control" id="titulo"
+                                       ng-model="postit.titulo">
+                            </div>
+                            <div class="form-group ">
+                                <label for="mensagem">Conteúdo</label>
+                                <textarea class="form-control" rows="3" id="mensagem"
+                                          ng-model="postit.mensagem"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-block" data-dismiss="modal"
+                                    ng-model="notaId" ng-click="novaNota(usuarioId, notaId)"
+                                    ng-disabled="!postit.mensagem || !postit.titulo">Criar / editar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <nav class="navbar navbar-inverse navbar-fixed-bottom">
+        <a class="navbar-brand" href="#"><p>&copy; 2017 Luis Guilherme, Inc.</p></a>
+    </nav>
+</footer>
+
+</div>
+</body>
+</html>
