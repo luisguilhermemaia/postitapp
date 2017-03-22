@@ -25,6 +25,8 @@
 
                 $scope.postit = {};
 
+                $scope.meuUsuario = {};
+
 
                 function findAll() {
                     $http.get('http://localhost:8000/api/users/').then(function (response) {
@@ -35,12 +37,17 @@
                 findAll();
 
                 $scope.findById = function (usuario) {
+
                     $scope.usuarioId = usuario.id;
                     $scope.nomeUsuario = usuario.username;
                     $http.get('http://localhost:8000/api/users/' + $scope.usuarioId).then(function (response) {
+                        console.log(response.data.postits);
                         $scope.arrayPostits = response.data.postits;
+                        $scope.meuUsuario = response.data;
                     });
+                    return $scope.arrayPostits;
                 }
+
 
                 $scope.novoUsuario = function (usuario) {
                     var dataObj = {
@@ -52,6 +59,7 @@
                             $scope.message = data;
                             $scope.usuarios.push({username: usuario.username})
                         });
+                    window.location.reload();
                     findAll();
                 }
 
@@ -89,17 +97,13 @@
                         $http.post('http://localhost:8000/api/postit/' + userId, JSON.stringify(dataObj))
                             .then(function (data, status, headers, config) {
                                 $scope.message = data;
-                                $scope.arrayPostits.push({titulo: tit, mensagem: men});
+                                $scope.arrayPostits = null;
+                                $http.get('http://localhost:8000/api/users/' + userId).then(function (response) {
+                                    $scope.arrayPostits = response.data.postits;
+                                });
                                 findAll();
                             });
                     } else {
-
-                        console.log("chegou aqui");
-                        console.log(userId);
-                        console.log(notaId);
-                        console.log(tit);
-                        console.log(men);
-
                         var dataObj = {
                             titulo: tit,
                             mensagem: men,
@@ -112,13 +116,23 @@
                                         $scope.arrayPostits.splice(index, 1);
                                     }
                                 });
-                                $scope.message = data;
-                                $scope.arrayPostits.push({titulo: tit, mensagem: men});
-                                findAll();
 
+                                $scope.arrayPostits = null;
+                                $http.get('http://localhost:8000/api/users/' + userId).then(function (response) {
+                                    $scope.arrayPostits = response.data.postits;
+                                });
+
+                                $scope.message = data;
+                                findAll();
                             });
                     }
                 }
+
+                $scope.apaga = function (mensagem, titulo) {
+                    $scope.postit.titulo = titulo;
+                    $scope.postit.mensagem = mensagem;
+                }
+
 
                 $scope.deleteEvent = function (id, userId, mensagem, titulo) {
                     $scope.notaId = id;
@@ -181,7 +195,7 @@
 <div class="jumbotron" ng-controller="postitsController">
     <div class="container" id="botao">
         <button type="button" class="btn btn-primary btn-lg btn-block botao" data-toggle="modal"
-                data-target=".bs-example-modal-sm">Novo Postit
+                data-target=".bs-example-modal-sm" ng-click="apaga('','')">Novo Postit
         </button>
     </div>
     <div class="container">
@@ -202,7 +216,8 @@
                     <button type="submit" class="btn btn-success btn-block" ng-click="novoUsuario(usuario)"
                             ng-disabled="!usuario.username">Criar Caderno
                     </button>
-                    <button type="submit" class="btn btn-danger btn-block" ng-click="apagaUsuario(usuarioId)">Apagar Caderno
+                    <button type="submit" class="btn btn-danger btn-block" ng-click="apagaUsuario(usuarioId)">Apagar
+                        Caderno
                     </button>
 
                     <hr>
@@ -225,8 +240,9 @@
                                        ng-click="destroyById(item.id, item.userId)"><i
                                             class="glyphicon glyphicon-trash"> Apagar</i></a>
                                     <a data-toggle="modal" data-target=".bs-example-modal-sm" href="#"
-                                       class="text-danger pull-left icones" ng-click="deleteEvent(item.id, item.userId, item.mensagem, item.titulo)">
-                                        <i class="glyphicon glyphicon-pencil"></i>
+                                       class="text-danger pull-left icones"
+                                       ng-click="deleteEvent(item.id, item.userId, item.mensagem, item.titulo)">
+                                        <i class="glyphicon glyphicon-pencil" ng-disabled="!item.id"></i>
                                         Editar</a>
                                 </div>
                             </li>
