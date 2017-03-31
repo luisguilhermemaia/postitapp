@@ -1,3 +1,6 @@
+Instalar NodeJs e NPM
+
+
 1 - Criar banco postgres e configurar no config.json :
 
 ex: 
